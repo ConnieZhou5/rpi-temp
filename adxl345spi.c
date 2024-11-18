@@ -212,7 +212,7 @@ int main(int argc, char *argv[]) {
             }
             
             // Set the next read time
-            nextReadTime += 0.5; // Schedule next reading in 0.5 seconds
+            nextReadTime += delay; // Schedule next reading in 0.5 seconds
         }
         gpioTerminate();
         tDuration = time_time() - tStart;  // need to update current time to give a closer estimate of sampling rate
