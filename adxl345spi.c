@@ -6,6 +6,7 @@
 #include <pigpio.h>
 #include <curl/curl.h>
 #include <unistd.h> 
+#include <signal.h>
 
 // run: sudo adxl345spi 
 
@@ -28,6 +29,7 @@ const int coldStartSamples = 2;  // number of samples to be read before outputti
 const double coldStartDelay = 0.1;  // time delay between cold start reads
 const double accConversion = 2 * 16.0 / 8192.0;  // +/- 16g range, 13-bit resolution
 const double tStatusReport = 1;  // time period of status report if data read to file, seconds
+volatile int keepRunning = 1;
 
 // Low-pass filter function
 double applyLowPassFilter(double currentValue, double previousValue, double alpha) {
@@ -81,7 +83,13 @@ void sendAlertSubprocess(const char *alertMessage) {
     // Parent process continues execution
 }
 
+void handleInterrupt(int signal) {
+    printf("\nInterrupt signal received. Exiting acc program.");
+    keepRunning = 0;
+}
+
 int main(int argc, char *argv[]) {
+    signal(SIGINT, handleInterrupt);
     int i;
     int bSave = 0;
     char vSave[256] = "";
@@ -129,7 +137,7 @@ int main(int argc, char *argv[]) {
         // real reads happen here
         tStart = time_time();
         double nextReadTime = tStart;
-        for (i = 0; i < samples; i++) {
+        while (keepRunning) {
             // Wait until it's time for the next reading
             while (time_time() < nextReadTime) {
                 time_sleep(0.001); // Small sleep to prevent CPU hogging
